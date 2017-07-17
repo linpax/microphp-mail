@@ -16,11 +16,11 @@ class MailTransport implements TransportInterface
     public function send(Mail $message)
     {
         return \mail(
-            $message->getTo(),
+            implode(', ',$message->getTo()),
             $message->getSubject(),
             $message->getText(),
             $message->getHeaders(),
-            $message->getParams()
+            $message->getParamsAsString()
         );
     }
 }

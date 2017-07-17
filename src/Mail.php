@@ -10,8 +10,15 @@ namespace Micro\Mail;
 
 class Mail
 {
-    /** @var string $to Recipient */
-    private $to;
+    const MIME_TEXT = 'text/plain';
+    const MIME_HTML = 'text/html';
+
+    /** @var array $to Recipient */
+    private $to = [];
+    /** @var array $CC Carbon copy */
+    private $CC = [];
+    /** @var array $BCC Blind carbon copy */
+    private $BCC = [];
     /** @var string $type Doctype */
     private $type = 'text/html';
     /** @var string $encoding encoding */
@@ -39,12 +46,12 @@ class Mail
     public function __construct($from = '', $fromName = '')
     {
         if ($from) {
-            $this->setHeaders('From', sprintf('=?utf-8?B?%s?= <%s>', base64_encode($fromName), $from));
+            $this->setHeader('From', sprintf('=?utf-8?B?%s?= <%s>', base64_encode($fromName), $from));
         }
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
     public function getTo()
     {
@@ -52,15 +59,83 @@ class Mail
     }
 
     /**
-     * @inheritdoc
+     * @param string $mail
+     * @return $this
      */
-    public function setTo($mail)
+    public function addTo($mail)
     {
-        $this->to = $mail;
+        $this->to[] = $mail;
+        return $this;
     }
 
     /**
-     * @inheritdoc
+     * @param string|string $mail
+     * @return $this
+     */
+    public function setTo($mail)
+    {
+        $this->to = is_array($mail) ? $mail : [$mail];
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCC()
+    {
+        return $this->CC;
+    }
+
+    /**
+     * @param string $CC
+     * @return $this
+     */
+    public function addCC($CC)
+    {
+        $this->CC[] = $CC;
+        return $this;
+    }
+
+    /**
+     * @param array|string $CC
+     * @return $this
+     */
+    public function setCC($CC)
+    {
+        $this->CC = is_array($CC) ? $CC : [$CC];
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getBCC()
+    {
+        return $this->BCC;
+    }
+
+    /**
+     * @param string $BCC
+     * @return $this
+     */
+    public function addBCC($BCC)
+    {
+        $this->BCC[] = $BCC;
+        return $this;
+    }
+
+    /**
+     * @param array|string $BCC
+     * @return $this
+     */
+    public function setBCC($BCC)
+    {
+        $this->BCC = is_array($BCC) ? $BCC : $BCC;
+        return $this;
+    }
+
+    /**
+     * @return string
      */
     public function getSubject()
     {
@@ -68,15 +143,17 @@ class Mail
     }
 
     /**
-     * @inheritdoc
+     * @param string $text
+     * @return $this
      */
     public function setSubject($text)
     {
-        $this->subject = '=?utf-8?B?'.base64_encode($text).'?=';
+        $this->subject = '=?utf-8?B?' . base64_encode($text) . '?=';
+        return $this;
     }
 
     /**
-     * @inheritdoc
+     * @return string
      */
     public function getText()
     {
@@ -84,17 +161,25 @@ class Mail
     }
 
     /**
-     * @inheritdoc
+     * @param string $body
+     * @param string $type
+     * @param string $encoding
+     * @return $this
+     * @throws Exception
      */
-    public function setText($body, $type = 'text/plain', $encoding = 'utf-8')
+    public function setText($body, $type = self::MIME_TEXT, $encoding = 'utf-8')
     {
+        if (!in_array($type, [self::MIME_TEXT, self::MIME_HTML])) {
+            throw new Exception('Mime-type ' . $type . ' is not allowed here');
+        }
         $this->text = $body;
         $this->type = $type;
         $this->encoding = $encoding;
+        return $this;
     }
 
     /**
-     * @inheritdoc
+     * @return string
      */
     public function getHeaders()
     {
@@ -106,30 +191,48 @@ class Mail
     }
 
     /**
-     * @inheritdoc
+     * @param string $name
+     * @param string $value
+     * @return $this
      */
-    public function setHeaders($name, $value)
+    public function setHeader($name, $value)
     {
-        $this->headers[$name] = $name.': '.$value;
+        $this->headers[$name] = $name . ': ' . $value;
+        return $this;
     }
 
     /**
-     * @inheritdoc
+     * @param $name
+     * @return bool|string
      */
-    public function getParams()
+    public function getHeader($name)
+    {
+        if (!isset($this->headers[$name])) {
+            return false;
+        }
+        return $this->headers[$name];
+    }
+
+    /**
+     * @return bool|string
+     */
+    public function getParamsAsString()
     {
         if (!$this->params) {
             return false;
         }
 
-        return implode("\r\n", array_values($this->params))."\r\n";
+        return implode("\r\n", array_values($this->params)) . "\r\n";
     }
 
     /**
-     * @inheritdoc
+     * @param string $name
+     * @param string $value
+     * @return $this
      */
-    public function setParams($name, $value)
+    public function setParam($name, $value)
     {
-        $this->params[$name] = $name.': '.$value;
+        $this->params[$name] = $name . ': ' . $value;
+        return $this;
     }
 }
